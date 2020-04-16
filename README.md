@@ -1,4 +1,4 @@
-# DevOps Days Scripts
+# Bare Metal Cloud Demo Scripts
 
 The purpose of this repo is show a demo of provisioning servers through BMC API.
 
