@@ -13,7 +13,7 @@ from concurrent.futures import ThreadPoolExecutor, wait, as_completed
 from services import bmc_api_auth, bmc_api
 from utils.utils import bcolors
 
-s = sched.scheduler(time.time, time.sleep)
+scheduler = sched.scheduler(time.time, time.sleep)
 
 REQUEST = requests.Session()
 ENVIRONMENT = "prod"
@@ -75,6 +75,11 @@ def main():
         check_system(servers)
         show_k8s_dashboard_info()
         show_wordpress_info()
+        #Fix to ensure coredns and wordpress works correctly
+        run_shell_command(['kubectl scale deployment.apps/coredns -n kube-system --replicas=0'])
+        run_shell_command(['kubectl scale deployment.apps/coredns -n kube-system --replicas=1'])
+        run_shell_command(['kubectl scale deployment.apps/wordpress -n wordpress --replicas=0'])
+        run_shell_command(['kubectl scale deployment.apps/wordpress -n wordpress --replicas=1'])
 
 
 def __do_setup_host(servers, json_server):
@@ -118,8 +123,8 @@ def get_access_token(client, password):
 
 
 def setup_host(json_server):
-    s.enter(0, 1, wait_server_ready, (s, json_server))
-    s.run()
+    scheduler.enter(0, 1, wait_server_ready, (scheduler, json_server))
+    scheduler.run()
     print(bcolors.OKBLUE + bcolors.BOLD + "Server provisioned {}".format(json_server['hostname']) + bcolors.ENDC)
     print(bcolors.WARNING + "Installing kubernetes in {}".format(json_server['hostname']) + bcolors.ENDC)
     install_basic_script(json_server['publicIpAddresses'][0])
@@ -133,10 +138,10 @@ def setup_host(json_server):
     return json_server
 
 
-def wait_server_ready(sc, server_data):
+def wait_server_ready(sched, server_data):
     json_server = bmc_api.get_server(REQUEST, server_data['id'], ENVIRONMENT)
     if json_server['status'] == "creating":
-        s.enter(2, 1, wait_server_ready, (sc, server_data,))
+        scheduler.enter(2, 1, wait_server_ready, (sched, server_data,))
     elif json_server['status'] == "powered-on" and not data['has_a_master_server']:
         server_data['status'] = json_server['status']
         server_data['master'] = True
