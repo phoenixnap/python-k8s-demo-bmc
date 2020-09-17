@@ -78,6 +78,11 @@ def main():
         run_shell_command(['kubectl scale deployment.apps/coredns -n kube-system --replicas=1'])
         run_shell_command(['kubectl scale deployment.apps/wordpress -n wordpress --replicas=0'])
         run_shell_command(['kubectl scale deployment.apps/wordpress -n wordpress --replicas=1'])
+        print(bcolors.OKBLUE + bcolors.BOLD + "Kubernetes dashboard installed" + bcolors.ENDC)
+        check_system(servers)
+        show_k8s_dashboard_info()
+        show_wordpress_info()
+
 
 
 def __do_setup_host(servers, json_server):
@@ -319,7 +324,7 @@ if __name__ == '__main__':
     credentials = read_dict_file("credentials.conf")
     servers_data = []
     for server in range(server_settings['servers_quantity']):
-        server_data = {"hostname": "{}-{}".format("lala", server+1),
+        server_data = {"hostname": "{}-{}".format(server_settings['hostname'], server+1),
                        "description": "{}".format(server_settings['description'], server+1),
                        "public": True,
                        "location": "PHX",
