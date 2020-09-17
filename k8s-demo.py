@@ -19,7 +19,7 @@ scheduler = sched.scheduler(time.time, time.sleep)
 REQUEST = requests.Session()
 ENVIRONMENT = "prod"
 VERBOSE_MODE = False
-MAX_RETRIES = 3
+MAX_RETRIES = 1
 NOW = datetime.now()
 
 
@@ -73,16 +73,15 @@ def main():
             print(bcolors.OKBLUE + bcolors.BOLD + "Wordpress installed" + bcolors.ENDC)
     if len(servers) > 0:
         setup_master_dashboard(data['master_ip'])
+        print(bcolors.OKBLUE + bcolors.BOLD + "Kubernetes dashboard installed" + bcolors.ENDC)
         #Fix to ensure coredns and wordpress works correctly
         run_shell_command(['kubectl scale deployment.apps/coredns -n kube-system --replicas=0'])
         run_shell_command(['kubectl scale deployment.apps/coredns -n kube-system --replicas=1'])
         run_shell_command(['kubectl scale deployment.apps/wordpress -n wordpress --replicas=0'])
         run_shell_command(['kubectl scale deployment.apps/wordpress -n wordpress --replicas=1'])
-        print(bcolors.OKBLUE + bcolors.BOLD + "Kubernetes dashboard installed" + bcolors.ENDC)
         check_system(servers)
         show_k8s_dashboard_info()
         show_wordpress_info()
-
 
 
 def __do_setup_host(servers, json_server):
@@ -229,7 +228,8 @@ def is_node_ready(worker_ips) -> bool:
 
 def checker_list(check_list):
     for check in check_list:
-        if run_shell_command([check], print_log=True) == "":
+        output = run_shell_command([check], print_log=True)
+        if output == "":
             return False
     return True
 
@@ -301,22 +301,23 @@ def show_wordpress_info():
 
 
 def run_shell_command(commands: list, print_log: bool = VERBOSE_MODE, retries: int = 0) -> str:
-    proc = subprocess.Popen(commands, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    proc = subprocess.Popen(commands, stdout=subprocess.PIPE, shell=True)
     (out, err) = proc.communicate()
+    result = out.decode('UTF-8')
     if err:
         print(bcolors.FAIL + "Error executing: {}".format(*commands) + bcolors.ENDC)
         print(bcolors.FAIL + "{}".format(err.decode('UTF-8')) + bcolors.ENDC)
         if retries < MAX_RETRIES:
-            retries += 1
-            print(bcolors.HEADER + "Retrying in {} seconds... ({}/{})".format(retries, retries, MAX_RETRIES) + bcolors.ENDC)
-            sleep(retries)
-            run_shell_command(commands, print_log, retries)
+            print(bcolors.HEADER + "Retrying ({}/{})".format(retries, MAX_RETRIES) + bcolors.ENDC)
+            sleep(0.2)
+            retries = retries + 1
+            return run_shell_command(commands, print_log, retries)
     if print_log:
-        if out:
-            print(bcolors.HEADER + "{}".format(out.decode('UTF-8')) + bcolors.ENDC)
+        if result != "":
+            print(bcolors.HEADER + "{}".format(result) + bcolors.ENDC)
         else:
             print(bcolors.HEADER + "Finished: {}".format(*commands) + bcolors.ENDC)
-    return out
+    return result
 
 
 if __name__ == '__main__':
