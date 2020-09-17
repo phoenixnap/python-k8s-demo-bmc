@@ -319,8 +319,8 @@ if __name__ == '__main__':
     credentials = read_dict_file("credentials.conf")
     servers_data = []
     for server in range(server_settings['servers_quantity']):
-        server_data = {"hostname": "host-{}".format(server),
-                       "description": "host-{}".format(server),
+        server_data = {"hostname": "{}-{}".format("lala", server+1),
+                       "description": "{}".format(server_settings['description'], server+1),
                        "public": True,
                        "location": "PHX",
                        "os": "ubuntu/bionic",
