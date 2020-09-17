@@ -11,7 +11,7 @@ import subprocess
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, wait, as_completed
 from services import bmc_api_auth, bmc_api
-from utils.utils import bcolors
+from utils.bcolors import bcolors
 
 scheduler = sched.scheduler(time.time, time.sleep)
 
@@ -71,10 +71,6 @@ def main():
             print(bcolors.OKBLUE + bcolors.BOLD + "Wordpress installed" + bcolors.ENDC)
     if len(servers) > 0:
         setup_master_dashboard(data['master_ip'])
-        print(bcolors.OKBLUE + bcolors.BOLD + "Kubernetes dashboard installed" + bcolors.ENDC)
-        check_system(servers)
-        show_k8s_dashboard_info()
-        show_wordpress_info()
         #Fix to ensure coredns and wordpress works correctly
         run_shell_command(['kubectl scale deployment.apps/coredns -n kube-system --replicas=0'])
         run_shell_command(['kubectl scale deployment.apps/coredns -n kube-system --replicas=1'])

@@ -1,11 +1,11 @@
 #!/usr/local/bin/python
-"""Module providing anything related to authenticating with BMC api."""
+"""Module providing calls available on BMC api."""
 import json
 import time
-from utils.utils import bcolors
+from utils.bcolors import bcolors
 
-environment = {'dev': {'url_path': 'https://api-dev.phoenixnap.com/bmc/v0/'},
-               'prod': {'url_path': ' https://api.phoenixnap.com/bmc/v0/'}}
+environment = {'dev': {'url_path': 'https://api-dev.phoenixnap.com/bmc/v1beta/'},
+               'prod': {'url_path': ' https://api.phoenixnap.com/bmc/v1beta/'}}
 
 
 def get_servers(session, env='dev') -> str:
