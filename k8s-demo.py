@@ -9,6 +9,7 @@ import requests
 import ast
 import subprocess
 from datetime import datetime
+from time import sleep
 from concurrent.futures import ThreadPoolExecutor, wait, as_completed
 from services import bmc_api_auth, bmc_api
 from utils.bcolors import bcolors
@@ -18,6 +19,7 @@ scheduler = sched.scheduler(time.time, time.sleep)
 REQUEST = requests.Session()
 ENVIRONMENT = "prod"
 VERBOSE_MODE = False
+MAX_RETRIES = 3
 NOW = datetime.now()
 
 
@@ -293,16 +295,23 @@ def show_wordpress_info():
     print("URL: https://{}".format(data["master_ip"]))
 
 
-def run_shell_command(commands: list, print_log: bool = VERBOSE_MODE) -> str:
-    proc = subprocess.Popen(commands, stdout=subprocess.PIPE, shell=True)
+def run_shell_command(commands: list, print_log: bool = VERBOSE_MODE, retries: int = 0) -> str:
+    proc = subprocess.Popen(commands, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     (out, err) = proc.communicate()
-    result = out.decode('UTF-8')
+    if err:
+        print(bcolors.FAIL + "Error executing: {}".format(*commands) + bcolors.ENDC)
+        print(bcolors.FAIL + "{}".format(err.decode('UTF-8')) + bcolors.ENDC)
+        if retries < MAX_RETRIES:
+            retries += 1
+            print(bcolors.HEADER + "Retrying in {} seconds... ({}/{})".format(retries, retries, MAX_RETRIES) + bcolors.ENDC)
+            sleep(retries)
+            run_shell_command(commands, print_log, retries)
     if print_log:
-        if result != "":
-            print(bcolors.HEADER + "{}".format(result) + bcolors.ENDC)
+        if out:
+            print(bcolors.HEADER + "{}".format(out.decode('UTF-8')) + bcolors.ENDC)
         else:
-            print(bcolors.HEADER + "Finished: {}".format(commands[0]) + bcolors.ENDC)
-    return result
+            print(bcolors.HEADER + "Finished: {}".format(*commands) + bcolors.ENDC)
+    return out
 
 
 if __name__ == '__main__':
