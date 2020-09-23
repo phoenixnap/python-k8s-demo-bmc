@@ -3,6 +3,7 @@
 import json
 import time
 from utils.bcolors import bcolors
+from utils import files
 
 environment = {'dev': {'url_path': 'https://api-dev.phoenixnap.com/bmc/v1beta/'},
                'prod': {'url_path': ' https://api.phoenixnap.com/bmc/v1beta/'}}
@@ -41,6 +42,7 @@ def __do_create_server(session, server, env):
     if response.status_code != 200:
         print(bcolors.FAIL + "Error creating server: {}".format(json.dumps(response.json())) + bcolors.ENDC)
     else:
+        files.save_server_provisioned(response.json())
         print(bcolors.OKBLUE + "{}".format(json.dumps(response.json(), indent=2)) + bcolors.ENDC)
         return response.json()
 
@@ -53,7 +55,7 @@ def create_servers(futures, pool, session, servers: list, env="dev") -> list:
 
 def delete_all_servers(session, env):
     """Delete all servers."""
-    servers = get_servers(session, env)
+    servers = files.load_servers_provisioned()
 
     for server in servers:
         response = session.delete(environment[env]['url_path'] + 'servers/{}'.format(server['id']))

@@ -13,6 +13,7 @@ from time import sleep
 from concurrent.futures import ThreadPoolExecutor, wait, as_completed
 from services import bmc_api_auth, bmc_api
 from utils.bcolors import bcolors
+from utils import files
 
 scheduler = sched.scheduler(time.time, time.sleep)
 
@@ -41,11 +42,12 @@ def main():
     """Method called from the main entry point of the script to do the required logic."""
     args = parse_args()
     delete_all = args.delete_all
-
     get_access_token(credentials["client_id"], credentials["client_secret"])
     if delete_all is not None:
         bmc_api.delete_all_servers(REQUEST, ENVIRONMENT)
+        files.delete_servers_provisioned_file()
         return
+    files.delete_servers_provisioned_file()
     check_kubectl_local()
     servers = list()
     pool = ThreadPoolExecutor()
