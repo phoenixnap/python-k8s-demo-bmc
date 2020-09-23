@@ -13,7 +13,7 @@ def get_servers(session, env='dev') -> str:
     """List all servers owned by account."""
     response = session.get(environment[env]['url_path'] + 'servers')
     while response.status_code == 502:
-        handle_error_502(response)
+        delay_retry(response)
         response = session.get(environment[env]['url_path'] + 'servers')
     if response.status_code != 200:
         raise Exception(print_error(response))
@@ -24,7 +24,7 @@ def get_server(session, server_id: str, env='dev') -> str:
     """Get server by ID."""
     response = session.get(environment[env]['url_path'] + 'servers/{}'.format(server_id))
     while response.status_code == 502:
-        handle_error_502(response)
+        delay_retry(response)
         response = session.get(environment[env]['url_path'] + 'servers/{}'.format(server_id))
     if response.status_code != 200:
         raise Exception(print_error(response))
@@ -36,7 +36,7 @@ def __do_create_server(session, server, env):
     response = session.post((environment[env]['url_path'] + 'servers'),
                             data=json.dumps(server))
     while response.status_code == 502:
-        handle_error_502(response)
+        delay_retry(response)
         response = session.post((environment[env]['url_path'] + 'servers'),
                                 data=json.dumps(server))
     if response.status_code != 200:
@@ -59,8 +59,8 @@ def delete_all_servers(session, env):
 
     for server in servers:
         response = session.delete(environment[env]['url_path'] + 'servers/{}'.format(server['id']))
-        while response.status_code == 502:
-            handle_error_502(response)
+        while response.status_code == 502 or response.status_code == 409:
+            delay_retry(response)
             response = session.delete(environment[env]['url_path'] + 'servers/{}'.format(server['id']))
         if response.status_code != 200:
             # raise Exception(utils.print_error(response))
@@ -68,10 +68,9 @@ def delete_all_servers(session, env):
         print(bcolors.FAIL + json.dumps(response.json()) + bcolors.ENDC)
 
 
-def handle_error_502(response):
-    print(bcolors.WARNING + "Error 502, trying again" + bcolors.ENDC)
-    print(response.headers)
-    time.sleep(0.5)
+def delay_retry(response):
+    time.sleep(5)
+    print(bcolors.FAIL + "Error {}, trying again, be patient".format(response.status_code) + bcolors.ENDC)
 
 
 def print_error(response) -> str:
