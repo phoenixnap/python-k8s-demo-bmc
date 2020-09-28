@@ -60,17 +60,17 @@ def retry_if_bad_request(response):
     return response.status_code == 502 or response.status_code == 409
 
 
-@retry(retry_on_result=retry_if_bad_request, stop_max_attempt_number=5, wait_fixed=2000)
+@retry(retry_on_result=retry_if_bad_request, stop_max_attempt_number=5, wait_exponential_multiplier=1000, wait_exponential_max=10000)
 def __get(session, url: str):
     return session.get(url)
 
 
-@retry(retry_on_result=retry_if_bad_request, stop_max_attempt_number=5, wait_fixed=2000)
+@retry(retry_on_result=retry_if_bad_request, stop_max_attempt_number=5, wait_exponential_multiplier=1000, wait_exponential_max=10000)
 def __post(session, url: str, payload):
     return session.post(url, data=payload)
 
 
-@retry(retry_on_result=retry_if_bad_request, stop_max_attempt_number=5, wait_fixed=2000)
+@retry(retry_on_result=retry_if_bad_request, stop_max_attempt_number=5, wait_exponential_multiplier=1000, wait_exponential_max=10000)
 def __delete(session, url: str):
     return session.delete(url)
 
