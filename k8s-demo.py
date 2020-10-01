@@ -9,8 +9,8 @@ import requests
 import ast
 import subprocess
 from datetime import datetime
-from time import sleep
 from concurrent.futures import ThreadPoolExecutor, wait, as_completed
+from retrying import retry
 from services import bmc_api_auth, bmc_api
 from utils.bcolors import bcolors
 from utils import files
@@ -302,18 +302,21 @@ def show_wordpress_info():
     print("URL: https://{}".format(data["master_ip"]))
 
 
-def run_shell_command(commands: list, print_log: bool = VERBOSE_MODE, retries: int = 0) -> str:
-    proc = subprocess.Popen(commands, stdout=subprocess.PIPE, shell=True)
+def retry_if_runtime_error(exception):
+    """Return True if we should retry (in this case when it's an RuntimeError), False otherwise"""
+    print(bcolors.OKBLUE + "Retrying..." + bcolors.ENDC)
+    return isinstance(exception, RuntimeError)
+
+
+@retry(retry_on_exception=retry_if_runtime_error, stop_max_attempt_number=5, wait_exponential_multiplier=1000, wait_exponential_max=10000)
+def run_shell_command(commands: list, print_log: bool = VERBOSE_MODE) -> str:
+    proc = subprocess.Popen(commands, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     (out, err) = proc.communicate()
     result = out.decode('UTF-8')
     if err:
         print(bcolors.FAIL + "Error executing: {}".format(*commands) + bcolors.ENDC)
         print(bcolors.FAIL + "{}".format(err.decode('UTF-8')) + bcolors.ENDC)
-        if retries < MAX_RETRIES:
-            print(bcolors.HEADER + "Retrying ({}/{})".format(retries, MAX_RETRIES) + bcolors.ENDC)
-            sleep(0.2)
-            retries = retries + 1
-            return run_shell_command(commands, print_log, retries)
+        raise RuntimeError()
     if print_log:
         if result != "":
             print(bcolors.HEADER + "{}".format(result) + bcolors.ENDC)
