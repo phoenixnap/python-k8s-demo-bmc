@@ -9,15 +9,18 @@ import requests
 import ast
 import subprocess
 from datetime import datetime
+from time import sleep
 from concurrent.futures import ThreadPoolExecutor, wait, as_completed
 from services import bmc_api_auth, bmc_api
-from utils.utils import bcolors
+from utils.bcolors import bcolors
+from utils import files
 
 scheduler = sched.scheduler(time.time, time.sleep)
 
 REQUEST = requests.Session()
 ENVIRONMENT = "prod"
 VERBOSE_MODE = False
+MAX_RETRIES = 1
 NOW = datetime.now()
 
 
@@ -39,11 +42,12 @@ def main():
     """Method called from the main entry point of the script to do the required logic."""
     args = parse_args()
     delete_all = args.delete_all
-
     get_access_token(credentials["client_id"], credentials["client_secret"])
     if delete_all is not None:
         bmc_api.delete_all_servers(REQUEST, ENVIRONMENT)
+        files.delete_servers_provisioned_file()
         return
+    files.delete_servers_provisioned_file()
     check_kubectl_local()
     servers = list()
     pool = ThreadPoolExecutor()
@@ -72,14 +76,14 @@ def main():
     if len(servers) > 0:
         setup_master_dashboard(data['master_ip'])
         print(bcolors.OKBLUE + bcolors.BOLD + "Kubernetes dashboard installed" + bcolors.ENDC)
-        check_system(servers)
-        show_k8s_dashboard_info()
-        show_wordpress_info()
         #Fix to ensure coredns and wordpress works correctly
         run_shell_command(['kubectl scale deployment.apps/coredns -n kube-system --replicas=0'])
         run_shell_command(['kubectl scale deployment.apps/coredns -n kube-system --replicas=1'])
         run_shell_command(['kubectl scale deployment.apps/wordpress -n wordpress --replicas=0'])
         run_shell_command(['kubectl scale deployment.apps/wordpress -n wordpress --replicas=1'])
+        check_system(servers)
+        show_k8s_dashboard_info()
+        show_wordpress_info()
 
 
 def __do_setup_host(servers, json_server):
@@ -226,7 +230,8 @@ def is_node_ready(worker_ips) -> bool:
 
 def checker_list(check_list):
     for check in check_list:
-        if run_shell_command([check], print_log=True) == "":
+        output = run_shell_command([check], print_log=True)
+        if output == "":
             return False
     return True
 
@@ -297,15 +302,23 @@ def show_wordpress_info():
     print("URL: https://{}".format(data["master_ip"]))
 
 
-def run_shell_command(commands: list, print_log: bool = VERBOSE_MODE) -> str:
+def run_shell_command(commands: list, print_log: bool = VERBOSE_MODE, retries: int = 0) -> str:
     proc = subprocess.Popen(commands, stdout=subprocess.PIPE, shell=True)
     (out, err) = proc.communicate()
     result = out.decode('UTF-8')
+    if err:
+        print(bcolors.FAIL + "Error executing: {}".format(*commands) + bcolors.ENDC)
+        print(bcolors.FAIL + "{}".format(err.decode('UTF-8')) + bcolors.ENDC)
+        if retries < MAX_RETRIES:
+            print(bcolors.HEADER + "Retrying ({}/{})".format(retries, MAX_RETRIES) + bcolors.ENDC)
+            sleep(0.2)
+            retries = retries + 1
+            return run_shell_command(commands, print_log, retries)
     if print_log:
         if result != "":
             print(bcolors.HEADER + "{}".format(result) + bcolors.ENDC)
         else:
-            print(bcolors.HEADER + "Finished: {}".format(commands[0]) + bcolors.ENDC)
+            print(bcolors.HEADER + "Finished: {}".format(*commands) + bcolors.ENDC)
     return result
 
 
@@ -314,8 +327,8 @@ if __name__ == '__main__':
     credentials = read_dict_file("credentials.conf")
     servers_data = []
     for server in range(server_settings['servers_quantity']):
-        server_data = {"hostname": "host-{}".format(server),
-                       "description": "host-{}".format(server),
+        server_data = {"hostname": "{}-{}".format(server_settings['hostname'], server+1),
+                       "description": "{}".format(server_settings['description'], server+1),
                        "public": True,
                        "location": "PHX",
                        "os": "ubuntu/bionic",

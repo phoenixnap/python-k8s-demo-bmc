@@ -2,7 +2,7 @@
 """Module providing anything related to authenticating with BMC api."""
 import requests
 from base64 import standard_b64encode
-from utils.utils import bcolors
+from utils.bcolors import bcolors
 
 
 environment = {'dev': {'url_path': 'https://auth-dev.phoenixnap.com/auth/realms/BMC/protocol/openid-connect/token'},
