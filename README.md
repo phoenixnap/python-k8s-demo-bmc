@@ -16,11 +16,13 @@ To run the script you need a valid API credentials for https://api.phoenixnap.co
 
 1. Download the repo ```git clone git@gitlab.com:phoenixnap/bare-metal-cloud/devops-days-scritps.git```
 
-2. Set your credentials in credentials.conf
+2. Execute the command ```pip install -r requirements.txt```
 
-3. Set default public key in server-settings.conf, you can get it with ```cat ~/.ssh/id_rsa.pub```
+3. Set your credentials in credentials.conf
 
-4. Execute the command ```python3 k8s-demo.py```
+4. Set default public key in server-settings.conf, you can get it with ```cat ~/.ssh/id_rsa.pub```
+
+5. Execute the command ```python3 k8s-demo.py```
 
 ### Script details
 
