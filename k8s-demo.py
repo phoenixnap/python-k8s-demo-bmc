@@ -76,11 +76,6 @@ def main():
     if len(servers) > 0:
         setup_master_dashboard(data['master_ip'])
         print(bcolors.OKBLUE + bcolors.BOLD + "Kubernetes dashboard installed" + bcolors.ENDC)
-        #Fix to ensure coredns and wordpress works correctly
-        run_shell_command(['kubectl scale deployment.apps/coredns -n kube-system --replicas=0'])
-        run_shell_command(['kubectl scale deployment.apps/coredns -n kube-system --replicas=1'])
-        run_shell_command(['kubectl scale deployment.apps/wordpress -n wordpress --replicas=0'])
-        run_shell_command(['kubectl scale deployment.apps/wordpress -n wordpress --replicas=1'])
         check_system(servers)
         show_k8s_dashboard_info()
         show_wordpress_info()
@@ -172,11 +167,17 @@ def check_system(servers: list):
     print("Checking k8s add-ons installation")
     if not is_k8s_addons_ready():
         print(bcolors.FAIL + "Error in kubernetes add-ons installation" + bcolors.ENDC)
-        setup_k8s_addons(data['master_ip'])
+        run_shell_command(['kubectl scale deployment.apps/coredns -n kube-system --replicas=0'])
+        run_shell_command(['kubectl scale deployment.apps/coredns -n kube-system --replicas=1'])
+        run_shell_command(['kubectl scale deployment.apps/wordpress -n wordpress --replicas=0'])
+        run_shell_command(['kubectl scale deployment.apps/wordpress -n wordpress --replicas=1'])
     print("Checking wordpress installation")
     if not is_wordpress_ready():
         print(bcolors.FAIL + "Error in wordpress installation" + bcolors.ENDC)
-        install_wordpress()
+        run_shell_command(['kubectl scale deployment.apps/coredns -n kube-system --replicas=0'])
+        run_shell_command(['kubectl scale deployment.apps/coredns -n kube-system --replicas=1'])
+        run_shell_command(['kubectl scale deployment.apps/wordpress -n wordpress --replicas=0'])
+        run_shell_command(['kubectl scale deployment.apps/wordpress -n wordpress --replicas=1'])
     print("Checking k8s dashboard installation")
     if not is_k8s_dashboard_ready():
         print(bcolors.FAIL + "Error in k8s dashboard installation" + bcolors.ENDC)
@@ -191,34 +192,17 @@ def check_system(servers: list):
 
 
 def is_k8s_addons_ready() -> bool:
-    checks_list = list()
-    checks_list.append('kubectl get services -l k8s-app=kube-dns -nkube-system | grep -i kube-dns')
-    checks_list.append('kubectl get deployments -nkube-system | grep -i coredns')
-    checks_list.append('kubectl get pods -nkube-system | grep -i coredns')
-    checks_list.append('kubectl get pods -ningress | grep -i ingress')
-    return checker_list(checks_list)
+    return checker_list(['kubectl rollout status deployment coredns -nkube-system'])
 
 
 def is_k8s_dashboard_ready() -> bool:
-    checks_list = list()
-    checks_list.append('kubectl get services -nkube-system | grep -i kubernetes-dashboard')
-    checks_list.append('kubectl get deployments -nkube-system | grep -i kubernetes-dashboard')
-    checks_list.append('kubectl get pods -nkube-system | grep -i kubernetes-dashboard')
-    return checker_list(checks_list)
+    return checker_list(['kubectl rollout status deployment kubernetes-dashboard -nkube-system'])
 
 
 def is_wordpress_ready() -> bool:
     checks_list = list()
-    checks_list.append('kubectl get namespaces -nwordpress | grep -i wordpress')
-    checks_list.append('kubectl get services -nwordpress | grep -i wordpress')
-    checks_list.append('kubectl get deployments -nwordpress | grep -i wordpress')
-    checks_list.append('kubectl get pods -nwordpress | grep -i wordpress')
-    checks_list.append('kubectl get ingress -nwordpress | grep -i wordpress')
-    checks_list.append('kubectl get services -nwordpress | grep -i mysql')
-    checks_list.append('kubectl get deployments -nwordpress | grep -i mysql')
-    checks_list.append('kubectl get pods -nwordpress | grep -i mysql')
-    checks_list.append('kubectl get pv -nwordpress | grep -i mysql')
-    checks_list.append('kubectl get pvc -nwordpress | grep -i mysql')
+    checks_list.append('kubectl rollout status deployment mysql -nwordpress')
+    checks_list.append('kubectl rollout status deployment wordpress -nwordpress')
     return checker_list(checks_list)
 
 
