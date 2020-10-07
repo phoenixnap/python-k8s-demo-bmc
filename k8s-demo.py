@@ -216,7 +216,7 @@ def is_node_ready(worker_ips) -> bool:
 
 def checker_list(check_list):
     for check in check_list:
-        output = run_shell_command([check], print_log=True)
+        output = run_shell_command([check], print_log=True, retries=False)
         if output == "":
             return False
     return True
@@ -295,14 +295,15 @@ def retry_if_runtime_error(exception):
 
 
 @retry(retry_on_exception=retry_if_runtime_error, stop_max_attempt_number=5, wait_exponential_multiplier=1000, wait_exponential_max=10000)
-def run_shell_command(commands: list, print_log: bool = VERBOSE_MODE) -> str:
+def run_shell_command(commands: list, print_log: bool = VERBOSE_MODE, retries: bool = True) -> str:
     proc = subprocess.Popen(commands, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     (out, err) = proc.communicate()
     result = out.decode('UTF-8')
     if err:
         print(bcolors.FAIL + "Error executing: {}".format(*commands) + bcolors.ENDC)
         print(bcolors.FAIL + "{}".format(err.decode('UTF-8')) + bcolors.ENDC)
-        raise RuntimeError()
+        if retries:
+            raise RuntimeError("Error executing: {}".format(*commands))
     if print_log:
         if result != "":
             print(bcolors.HEADER + "{}".format(result) + bcolors.ENDC)
