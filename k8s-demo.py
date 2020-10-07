@@ -153,8 +153,10 @@ def wait_server_ready(sched, server_data):
         data['has_a_master_server'] = True
         data['master_ip'] = json_server['publicIpAddresses'][0]
         data['master_hostname'] = json_server['hostname']
-        print(
-            bcolors.OKBLUE + bcolors.BOLD + "ASSIGNED MASTER SERVER: {}".format(data['master_hostname']) + bcolors.ENDC)
+        print(f"{bcolors.OKBLUE} {bcolors.BOLD} ASSIGNED MASTER SERVER: {data['master_hostname']} {bcolors.ENDC}")
+    elif json_server['status'] != "powered-on" and json_server['status'] != "creating":
+        print(f"{bcolors.FAIL} {bcolors.BOLD} UNEXPECTED SERVER STATE: {json_server['status']} {bcolors.ENDC}")
+        print(f"{bcolors.FAIL} {bcolors.BOLD} Server info: {json_server} {bcolors.ENDC}")
     else:
         server_data['status'] = json_server['status']
 
