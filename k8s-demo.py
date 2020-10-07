@@ -330,10 +330,10 @@ if __name__ == '__main__':
     credentials = read_dict_file("credentials.conf")
     servers_data = []
     for server in range(server_settings['servers_quantity']):
-        server_data = {"hostname": "{}-{}".format(server_settings['hostname'], server+1),
-                       "description": "{}".format(server_settings['description'], server+1),
-                       "public": True,
-                       "location": "PHX",
+        server_data = {"hostname": f"{server_settings['hostname']}-{server+1}",
+                       "description": f"{server_settings['description']}",
+                       "public": server_settings['public'],
+                       "location": server_settings['location'],
                        "os": "ubuntu/bionic",
                        "type": server_settings['server_type'],
                        "sshKeys": [server_settings['ssh-key']]}
