@@ -1,4 +1,5 @@
 #!/usr/local/bin/python
+# pylint: disable=C0321
 """Script to generate X servers, configure them in a kubernetes cluster and deploy a wordpress."""
 
 """You have to install parallel-ssh"""
