@@ -29,4 +29,4 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: docker.pkg.github.com
           repository: phoenixnap/bare-metal-cloud-demo-scripts/bare-metal-cloud-demo-scripts
-          tags: latest,${{ steps.vars.outputs.tag }}
+          tags: latest,${{ env.GITHUB_BASE_REF_SLUG }}
