@@ -2,7 +2,6 @@
 # pylint: disable=C0321
 """Script to generate X servers, configure them in a kubernetes cluster and deploy a wordpress."""
 
-"""You have to install parallel-ssh"""
 import argparse
 import sched
 import time
@@ -66,12 +65,12 @@ def main():
                 print(bcolors.WARNING + "Waiting for servers to be provisioned..." + bcolors.ENDC)
             futures_setups.append(pool.submit(__do_setup_host, servers, request.result()))
     wait(futures_setups)
-    for server in servers:
+    for _server in servers:
         print(bcolors.OKBLUE + bcolors.BOLD + "Setup servers done" + bcolors.ENDC)
-        if not server['joined']:
+        if not _server['joined']:
             print(bcolors.WARNING + "Adding node" + bcolors.ENDC)
-            join_nodes(data['master_ip'], server)
-        elif server['master']:
+            join_nodes(data['master_ip'], _server)
+        elif _server['master']:
             install_wordpress()
             print(bcolors.OKBLUE + bcolors.BOLD + "Wordpress installed" + bcolors.ENDC)
     if len(servers) > 0:
@@ -143,10 +142,10 @@ def setup_host(json_server):
     return json_server
 
 
-def wait_server_ready(sched, server_data):
+def wait_server_ready(_scheduler, server_data):
     json_server = bmc_api.get_server(REQUEST, server_data['id'], ENVIRONMENT)
     if json_server['status'] == "creating":
-        sched.enter(2, 1, wait_server_ready, (sched, server_data,))
+        _scheduler.enter(2, 1, wait_server_ready, (_scheduler, server_data,))
     elif json_server['status'] == "powered-on" and not data['has_a_master_server']:
         server_data['status'] = json_server['status']
         server_data['master'] = True
