@@ -1,7 +1,7 @@
 #!/usr/local/bin/python
+# pylint: disable=C0321
 """Script to generate X servers, configure them in a kubernetes cluster and deploy a wordpress."""
 
-"""You have to install parallel-ssh"""
 import argparse
 import sched
 import time
@@ -65,12 +65,12 @@ def main():
                 print(bcolors.WARNING + "Waiting for servers to be provisioned..." + bcolors.ENDC)
             futures_setups.append(pool.submit(__do_setup_host, servers, request.result()))
     wait(futures_setups)
-    for server in servers:
+    for _server in servers:
         print(bcolors.OKBLUE + bcolors.BOLD + "Setup servers done" + bcolors.ENDC)
-        if not server['joined']:
+        if not _server['joined']:
             print(bcolors.WARNING + "Adding node" + bcolors.ENDC)
-            join_nodes(data['master_ip'], server)
-        elif server['master']:
+            join_nodes(data['master_ip'], _server)
+        elif _server['master']:
             install_wordpress()
             print(bcolors.OKBLUE + bcolors.BOLD + "Wordpress installed" + bcolors.ENDC)
     if len(servers) > 0:
@@ -142,10 +142,10 @@ def setup_host(json_server):
     return json_server
 
 
-def wait_server_ready(sched, server_data):
+def wait_server_ready(_scheduler, server_data):
     json_server = bmc_api.get_server(REQUEST, server_data['id'], ENVIRONMENT)
     if json_server['status'] == "creating":
-        scheduler.enter(2, 1, wait_server_ready, (sched, server_data,))
+        _scheduler.enter(2, 1, wait_server_ready, (_scheduler, server_data,))
     elif json_server['status'] == "powered-on" and not data['has_a_master_server']:
         server_data['status'] = json_server['status']
         server_data['master'] = True
@@ -180,12 +180,12 @@ def check_system(servers: list):
         print(bcolors.FAIL + "Error in k8s dashboard installation" + bcolors.ENDC)
         setup_master_dashboard(data['master_ip'])
     print("Checking nodes connection")
-    for server in servers:
-        if not server['master'] and not is_node_ready(server['publicIpAddresses']):
+    for tmp_server in servers:
+        if not tmp_server['master'] and not is_node_ready(tmp_server['publicIpAddresses']):
             print(
-                bcolors.FAIL + "Error in node {} communication installation".format(server['hostname']) + bcolors.ENDC)
-            setup_host(server)
-            join_nodes(data['master_ip'], server)
+                bcolors.FAIL + "Error in node {} communication installation".format(tmp_server['hostname']) + bcolors.ENDC)
+            setup_host(tmp_server)
+            join_nodes(data['master_ip'], tmp_server)
 
 
 def is_k8s_addons_ready() -> bool:
@@ -255,8 +255,7 @@ def setup_k8s_addons(master_ip: str):
 
 def setup_master_dashboard(master_ip: str):
     print(bcolors.WARNING + "Installing kubernetes dashboard" + bcolors.ENDC)
-    run_shell_command([ssh + 'ubuntu@{} \'bash -s\' < ./scripts/master-dashboard.sh {}'.format(master_ip, master_ip)],
-                      print_log=True)
+    run_shell_command([f"{ssh} ubuntu@{master_ip} \'bash -s\' < ./scripts/master-dashboard.sh {master_ip}"], print_log=True)
 
 
 def get_tokens(master_ip: str) -> str:
@@ -328,17 +327,17 @@ def run_shell_command(commands: list, print_log: bool = VERBOSE_MODE) -> str:
 if __name__ == '__main__':
     server_settings = read_dict_file("server-settings.conf")
     credentials = read_dict_file("credentials.conf")
-    servers_data = []
+    servers_settings = []
     for server in range(server_settings['servers_quantity']):
-        server_data = {"hostname": f"{server_settings['hostname']}-{server+1}",
+        server_setting = {"hostname": f"{server_settings['hostname']}-{server + 1}",
                        "description": f"{server_settings['description']}",
                        "public": server_settings['public'],
                        "location": server_settings['location'],
                        "os": "ubuntu/bionic",
                        "type": server_settings['server_type'],
                        "sshKeys": [server_settings['ssh-key']]}
-        servers_data.append(server_data)
-    data = {"has_a_master_server": False, "servers": servers_data, "master_ip": "", "master_hostname": ""}
+        servers_settings.append(server_setting)
+    data = {"has_a_master_server": False, "servers": servers_settings, "master_ip": "", "master_hostname": ""}
     time = {"now": NOW}
     config = {}
     ssh = "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o LogLevel=ERROR "
