@@ -325,8 +325,8 @@ def run_shell_command(commands: list, print_log: bool = VERBOSE_MODE) -> str:
 
 
 if __name__ == '__main__':
-    server_settings = read_dict_file("server-settings.conf")
-    credentials = read_dict_file("credentials.conf")
+    server_settings = read_dict_file("conf/server-settings.conf")
+    credentials = read_dict_file("conf/credentials.conf")
     servers_settings = []
     for server in range(server_settings['servers_quantity']):
         server_setting = {"hostname": f"{server_settings['hostname']}-{server + 1}",
