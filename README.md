@@ -43,4 +43,4 @@ After prepare the infrastructure, software and check that the cluster is correct
 
 ### After the demo
 
-Please release the servers with the command ```python3 k8s-demo.py -d0```
+Please release the servers with the command ```python3 k8s-demo.py -d```
