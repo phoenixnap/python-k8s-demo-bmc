@@ -32,6 +32,7 @@ def parse_args():
     req_grp.add_argument(
         '-d',
         '--delete_all',
+        action='store_true',
         help='Delete all servers')
     parsed = parser.parse_args()
 
@@ -43,7 +44,7 @@ def main():
     args = parse_args()
     delete_all = args.delete_all
     get_access_token(credentials["client_id"], credentials["client_secret"])
-    if delete_all is not None:
+    if delete_all:
         bmc_api.delete_all_servers(REQUEST, ENVIRONMENT)
         files.delete_servers_provisioned_file()
         return
