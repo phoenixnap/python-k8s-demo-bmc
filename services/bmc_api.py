@@ -56,8 +56,10 @@ def delete_all_servers(session, env):
 
 
 def retry_if_bad_request(response):
-    print(f"Status code {response.status_code} on {response.request} to {response.url}. Retrying")
-    return response.status_code == 502 or response.status_code == 409
+    is_bad_request = response.status_code == 502 or response.status_code == 409
+    if is_bad_request:
+        print(f"Status code {response.status_code} on {response.request} to {response.url}. Retrying")
+    return is_bad_request
 
 
 @retry(retry_on_result=retry_if_bad_request, stop_max_attempt_number=5, wait_exponential_multiplier=1000, wait_exponential_max=10000)
